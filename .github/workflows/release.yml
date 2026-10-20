@@ -1,10 +1,16 @@
 name: Release
 
-# 打 tag（如 v1.0.0）即触发：构建签名 release APK 并发布到 GitHub Releases
+# 打 tag（如 v1.0.0）即触发：构建签名 release APK 并发布到 GitHub Releases；
+# 也可在 Actions 页手动 dispatch（此时 ref 是 main，必须填 tag 输入）
 on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的版本标签（如 v1.0.7）'
+        required: true
+        type: string
 
 permissions:
   contents: write   # 创建 Release 需要写权限
@@ -19,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # dispatch 用输入 tag 检出对应 commit；push tag 事件则检出自家的 tag
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -28,13 +37,17 @@ jobs:
           cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        # v4: Google removed the legacy `tools` SDK package (2026-09), v3's default
+        # `tools platform-tools` now fails with "Failed to find package 'tools'".
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 8512546
 
       # 版本号从 tag 自动算出，无需改 build.gradle：
       #   v1.2.3 -> versionName=1.2.3, versionCode=1*10000+2*100+3=10203
       - name: Derive version from tag
         run: |
-          TAG="${GITHUB_REF_NAME}"           # 例：v1.2.3
+          TAG="${{ inputs.tag || github.ref_name }}"  # dispatch 用输入；push tag 用标签名
           VNAME="${TAG#v}"                   # 1.2.3
           if ! echo "$VNAME" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "::error::tag 必须是 vMAJOR.MINOR.PATCH（如 v1.2.3），当前为 '$TAG'"
@@ -42,6 +55,7 @@ jobs:
           fi
           IFS=. read -r MA MI PA <<< "$VNAME"
           VCODE=$((MA*10000 + MI*100 + PA))
+          echo "TAG_NAME=$TAG"             >> "$GITHUB_ENV"
           echo "VERSION_NAME=$VNAME"  >> "$GITHUB_ENV"
           echo "VERSION_CODE=$VCODE" >> "$GITHUB_ENV"
           echo "versionName=$VNAME  versionCode=$VCODE"
@@ -70,16 +84,17 @@ jobs:
 
       - name: Rename artifacts
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "SMSForwarder-${{ github.ref_name }}.apk"
-          cp app/build/outputs/bundle/release/app-release.aab "SMSForwarder-${{ github.ref_name }}.aab"
+          cp app/build/outputs/apk/release/app-release.apk "SMSForwarder-${{ env.TAG_NAME }}.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "SMSForwarder-${{ env.TAG_NAME }}.aab"
           # 固定名副本：官网可用 /releases/latest/download/SMSForwarder.apk 直连下载最新版
           cp app/build/outputs/apk/release/app-release.apk "SMSForwarder.apk"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG_NAME }}
           files: |
-            SMSForwarder-${{ github.ref_name }}.apk
-            SMSForwarder-${{ github.ref_name }}.aab
+            SMSForwarder-${{ env.TAG_NAME }}.apk
+            SMSForwarder-${{ env.TAG_NAME }}.aab
             SMSForwarder.apk
           generate_release_notes: true

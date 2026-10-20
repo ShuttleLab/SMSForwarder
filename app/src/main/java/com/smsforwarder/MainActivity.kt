@@ -114,8 +114,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isIgnoringBattery(): Boolean {
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        return pm.isIgnoringBatteryOptimizations(packageName)
+        // Android 7（API 24/25）没有电池优化 API，异常时按未豁免处理
+        return try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun refresh() {

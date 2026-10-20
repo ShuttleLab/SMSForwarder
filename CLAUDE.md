@@ -94,9 +94,13 @@ Supporting pieces:
 
 ## Conventions
 
-- `minSdk 26`, `compileSdk 36`, `targetSdk 36`. Guard newer APIs with `Build.VERSION.SDK_INT`
-  (already done for FGS types and runtime permissions). Because minSdk is 26, the adaptive
-  launcher icon in `mipmap-anydpi-v26` always applies — no legacy PNG mipmaps needed.
+- `minSdk 24` (Android 7.0), `compileSdk 36`, `targetSdk 36`. Guard newer APIs with
+  `Build.VERSION.SDK_INT` (already done for FGS types, notification channels, and runtime
+  permissions); on Android 7 those branches fall back to legacy paths by design. Because
+  minSdk is 24, the adaptive launcher icon in `mipmap-anydpi-v26` is only consumed on API
+  26+ (Android 8+) — legacy launcher icons must live in `drawable/` (`<vector>` full-bleed,
+  used on Android 7) and `drawable-v26/` (`<adaptive-icon>` for Android 8+) — no legacy PNG
+  mipmaps needed.
 - View binding is enabled in Gradle but the code uses `findViewById` throughout — stay consistent.
 - No networking library; raw `HttpURLConnection` with explicit timeouts and `disconnect()`.
   Background work uses `CoroutineWorker` / coroutines, or a bare `Thread` (settings test send).

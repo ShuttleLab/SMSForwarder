@@ -29,7 +29,11 @@ jobs:
           cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        # v4: Google removed the legacy `tools` SDK package (2026-09), v3's default
+        # `tools platform-tools` now fails with "Failed to find package 'tools'".
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 8512546
 
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew

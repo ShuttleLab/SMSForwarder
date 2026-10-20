@@ -51,24 +51,33 @@ class ForwardService : Service() {
         // 先起音频，再以媒体类型进入前台（Android 14 对 mediaPlayback 要求确实在播放）
         if (keepalive) startKeepaliveAudio() else stopKeepaliveAudio()
 
-        val notif = buildNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (keepalive) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            else ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            try {
-                startForeground(NOTIF_ID, notif, type)
-            } catch (_: Exception) {
-                // 媒体类型被拒时回退到 specialUse，保证服务仍能进前台
+        // Android 7 没有 NotificationChannel，通知/前台调用可能降级失败；异常不阻断服务启动
+        try {
+            val notif = buildNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val type = if (keepalive) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                else ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                 try {
-                    startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                    startForeground(NOTIF_ID, notif, type)
                 } catch (_: Exception) {
+                    // 媒体类型被拒时回退到 specialUse，保证服务仍能进前台
+                    try {
+                        startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                    } catch (_: Exception) {
+                    }
                 }
+            } else {
+                startForeground(NOTIF_ID, notif)
             }
-        } else {
-            startForeground(NOTIF_ID, notif)
+        } catch (e: Exception) {
+            DebugLog.log(this, "前台通知构建/启动异常：${e.message}")
         }
         Prefs.get(this).edit().putBoolean(Prefs.KEY_RUNNING, true).apply()
-        WorkScheduler.scheduleReconcile(this)
+        try {
+            WorkScheduler.scheduleReconcile(this)
+        } catch (e: Exception) {
+            DebugLog.log(this, "对账任务调度异常：${e.message}")
+        }
         DebugLog.log(this, "服务启动（轮询间隔 ${Prefs.pollSeconds(this)}s）")
         startHeartbeat()
         return START_STICKY  // 被系统杀掉后自动重建

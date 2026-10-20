@@ -17,7 +17,11 @@ class BootReceiver : BroadcastReceiver() {
 
         if (!Prefs.isRunning(context)) return
 
-        WorkScheduler.scheduleReconcile(context)
+        try {
+            WorkScheduler.scheduleReconcile(context)
+        } catch (_: Exception) {
+            // Android 7 上 androidx.work 可能降级；对账只是兜底，失败不应影响重启服务
+        }
         val svc = Intent(context, ForwardService::class.java)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

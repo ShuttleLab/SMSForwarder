@@ -19,7 +19,7 @@
 
 <div align="center">
 
-![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android)
+![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android)
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.9-7F52FF?style=flat-square&logo=kotlin)
 ![Material](https://img.shields.io/badge/Material_Components-1.10-757575?style=flat-square&logo=materialdesign)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)
@@ -51,7 +51,7 @@ naive SMS apps. It is **not** published to any app store; it is for personal use
 ## Tech Stack
 
 - **Language:** Kotlin
-- **Platform:** Android SDK (minSdk 26 / targetSdk 36)
+- **Platform:** Android SDK (minSdk 24 / targetSdk 36)
 - **UI:** Material Components, View-based layouts
 - **Concurrency:** Kotlin Coroutines; WorkManager (periodic reconcile backstop only)
 - **Networking:** raw `HttpURLConnection` (no networking library)
